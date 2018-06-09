@@ -25,7 +25,7 @@ float prev_time_stamp = 0;
 Moonlander moonlander;
 
 void settings() {
-  size(CANVAS_WIDTH, CANVAS_HEIGHT, P2D);
+  size(CANVAS_WIDTH, CANVAS_HEIGHT, P3D);
 
 }
 
@@ -46,6 +46,7 @@ void setup() {
    dropletData.setFloat("x", 0);
    dropletData.setFloat("y", 0);
    dropletData.setFloat("r", 0);
+   dropletData.setString("mode","full"); //full and empty
    dropletArray.setJSONObject(i,dropletData);
   }
 }
@@ -67,7 +68,7 @@ void draw() {
      // Time for new droplet!
      
      //Get location for new droplet
-     float noiseValX = noise(noiseCounterIndex*33);
+     float noiseValX = noise(noiseCounterIndex*50);
      float noiseValY = noise(noiseCounterIndex*100);
      
      float new_droplet_x = map(noiseValX, 0,1,-width/2, width/2); 
@@ -77,6 +78,8 @@ void draw() {
       dropletArray.getJSONObject(arrayIndex).setFloat("x", new_droplet_x);
       dropletArray.getJSONObject(arrayIndex).setFloat("y", new_droplet_y);
       dropletArray.getJSONObject(arrayIndex).setFloat("r", new_droplet_r);
+      assignDropletMode(current_time_stamp);
+      
       arrayIndex++;
       if (arrayIndex >= dropletArray.size())
       {
@@ -98,22 +101,36 @@ void draw() {
       }
       float intensity = 70 - droplet_size_increment * r;
       if (intensity > 0){
-        fill(230,50,intensity);
-        ellipse(x,y, r, r);
+        //fill(230,50,intensity); //The original
+        fill(194,50,intensity);
+        if (dropletArray.getJSONObject(i).getString("mode") == "empty") {
+          circle(x,y, r);
+        } else {
+          ellipse(x,y, r, r);
+        }
       }
+      
   }
   prev_time_stamp = current_time_stamp;
   noiseCounterIndex++;
 }
 
+void assignDropletMode(float current_time_stamp) {
+  if ((current_time_stamp > 5 && random(5) <= 2) || current_time_stamp > 10) {
+      dropletArray.getJSONObject(arrayIndex).setString("mode","empty");
+  } else {
+      dropletArray.getJSONObject(arrayIndex).setString("mode","full");
+  }
+}
+
 void circle(float x, float y, float size) {
-    //Outer ellipse
+  //Outer ellipse
   ellipseMode(CENTER);
-  fill(255);
+  //fill(255);
   ellipse(x, y, size, size);
   //Inner ellipse
   ellipseMode(CENTER); 
   fill(0);
-   ellipse(x, y, size/1.2, size/1.2);
+   ellipse(x, y, size/1.1, size/1.1);
 
 }

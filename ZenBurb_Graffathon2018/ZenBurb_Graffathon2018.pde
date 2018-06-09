@@ -10,14 +10,16 @@ float bps = bpm/60;
 int slices = 8;
 
 float moon_counter_prev = 0; //Compare to this previous value 
+float moon_counter_diff = 0.05;
 int noiseCounterIndex = 4;
-int dropletMax = 30; //How many droplets are drawn at max
+int dropletMax = 80; //How many droplets are drawn at max
 
 JSONArray dropletArray;
 int arrayIndex = 0; //Keep track of which droplet will be reset in the dropletArray
 int new_droplet_r = 2;
 float droplet_size_increment = 1;
 
+float end_time_s = 60;
 float prev_time_stamp = 0;
 
 Moonlander moonlander;
@@ -51,11 +53,17 @@ void setup() {
 void draw() {
   background(0);
   moonlander.update();
-  translate(width/2,height/2); //Start from somewhere
-  float moon_counter = (float) moonlander.getValue("Floating_Cities");
-  println(moon_counter, moon_counter_prev);
+  translate(width/2,height/2); //Start from middle
   
-  if (moon_counter != moon_counter_prev) {
+  float current_time_stamp = (float) moonlander.getCurrentTime();
+  if (current_time_stamp > end_time_s)
+  {
+    exit();
+  }
+  
+  float moon_counter = (float) moonlander.getValue("Floating_Cities");
+  
+  if (abs(moon_counter - moon_counter_prev) > moon_counter_diff) {
      // Time for new droplet!
      
      //Get location for new droplet
@@ -76,15 +84,14 @@ void draw() {
       }
       moon_counter_prev = moon_counter;
   }
-
+  
   //Draw droplets in array (remember to increase r)
-  float current_time_stamp = (float) moonlander.getCurrentTime();
   for (int i = 0; i < dropletArray.size(); i++){
       float x = dropletArray.getJSONObject(i).getFloat("x");
       float y = dropletArray.getJSONObject(i).getFloat("y");
       float r = dropletArray.getJSONObject(i).getFloat("r");
       
-      //println(current_time_stamp, prev_time_stamp);
+      println(current_time_stamp, prev_time_stamp);
       if (current_time_stamp > prev_time_stamp) {
         r = r + droplet_size_increment;
         dropletArray.getJSONObject(i).setFloat("r", r);

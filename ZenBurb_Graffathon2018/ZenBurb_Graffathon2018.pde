@@ -9,18 +9,21 @@ int bpm = 120;
 float bps = bpm/60;
 int slices = 8;
 
-float moon_counter_prev = 0; //Compare to this previous value 
-float moon_counter_diff = 0.05;
+float prev_rocket_val = 0; //Compare to this previous value 
+float rocket_val_diff = 0.05;
 int noiseCounterIndex = 4;
 int dropletMax = 80; //How many droplets are drawn at max
 
 JSONArray dropletArray;
 int arrayIndex = 0; //Keep track of which droplet will be reset in the dropletArray
 int new_droplet_r = 2;
-float droplet_size_increment = 1;
+float droplet_size_increment = 1.5;
 
 float end_time_s = 60;
 float prev_time_stamp = 0;
+
+float droplet_color_saturation = 50;
+float intensity_threshold = 1;
 
 Moonlander moonlander;
 
@@ -36,6 +39,7 @@ void setup() {
   colorMode(HSB, 360, 100, 100);
   background(240, 100, 0);
   noiseSeed(0);
+  noStroke();
   //noCursor(); //Todo enable for final version
   
   //Init Array and dropletData objects
@@ -61,19 +65,19 @@ void draw() {
     exit();
   }
   
-  float moon_counter = (float) moonlander.getValue("Floating_Cities");
+  float curr_rocket_val = (float) moonlander.getValue("Floating_Cities");
   
-  if (abs(moon_counter - moon_counter_prev) > moon_counter_diff) {
+  if (abs(curr_rocket_val - prev_rocket_val) > rocket_val_diff) {
      // Time for new droplet!
      
      //Get location for new droplet
-     float noiseValX = noise(noiseCounterIndex*33);
+     float noiseValX = noise(noiseCounterIndex*60);
      float noiseValY = noise(noiseCounterIndex*100);
      
      float new_droplet_x = map(noiseValX, 0,1,-width/2, width/2); 
      float new_droplet_y = map(noiseValY, 0,1,-height/2, height/2); 
 
-      //Overwrite JSONObject
+      //Overwrite JSONObject in the JSONArray
       dropletArray.getJSONObject(arrayIndex).setFloat("x", new_droplet_x);
       dropletArray.getJSONObject(arrayIndex).setFloat("y", new_droplet_y);
       dropletArray.getJSONObject(arrayIndex).setFloat("r", new_droplet_r);
@@ -82,7 +86,9 @@ void draw() {
       {
          arrayIndex = 0;
       }
-      moon_counter_prev = moon_counter;
+      
+      //reset counter
+      prev_rocket_val = curr_rocket_val;
   }
   
   //Draw droplets in array (remember to increase r)
@@ -91,19 +97,28 @@ void draw() {
       float y = dropletArray.getJSONObject(i).getFloat("y");
       float r = dropletArray.getJSONObject(i).getFloat("r");
       
-      println(current_time_stamp, prev_time_stamp);
+      // println(current_time_stamp, prev_time_stamp);
       if (current_time_stamp > prev_time_stamp) {
         r = r + droplet_size_increment;
         dropletArray.getJSONObject(i).setFloat("r", r);
       }
-      float intensity = 70 - droplet_size_increment * r;
-      if (intensity > 0){
-        fill(230,50,intensity);
-        ellipse(x,y, r, r);
-      }
+      drawCircle(x,y,r);
   }
   prev_time_stamp = current_time_stamp;
   noiseCounterIndex++;
+}
+
+void drawSphere(float x, float y, float r) {
+   
+}
+
+void drawCircle(float x, float y, float r) {
+  // choose intensity for the droplet
+  float intensity = 70 - droplet_size_increment * r;
+  if (intensity > intensity_threshold){ // To remove black droplets
+    fill(230, droplet_color_saturation, intensity);
+    ellipse(x,y, r, r);
+  }
 }
 
 void circle(float x, float y, float size) {

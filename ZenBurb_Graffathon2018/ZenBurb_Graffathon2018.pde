@@ -5,13 +5,13 @@ import ddf.minim.*;
 int CANVAS_WIDTH = 1920;
 int CANVAS_HEIGHT = 1080;
 
-float circleTimeParam = 1;
-float bpm = 120;
+int bpm = 120;
 float bps = bpm/60;
+int slices = 8;
 
 float moon_counter_prev = 0; //Compare to this previous value 
 int noiseCounterIndex = 4;
-int dropletAmount = 10; //How many droplets are drawn at a time
+int dropletMax = 30; //How many droplets are drawn at max
 
 JSONArray dropletArray;
 int arrayIndex = 0; //Keep track of which droplet will be reset in the dropletArray
@@ -29,7 +29,7 @@ void settings() {
 
 void setup() {
   frameRate(60);
-  moonlander = Moonlander.initWithSoundtrack(this, "Floating_Cities.mp3", 120, 8);
+  moonlander = Moonlander.initWithSoundtrack(this, "Floating_Cities.mp3", bpm, slices);
   moonlander.start();
   colorMode(HSB, 360, 100, 100);
   background(240, 100, 0);
@@ -38,7 +38,7 @@ void setup() {
   
   //Init Array and dropletData objects
   dropletArray = new JSONArray();
-  for (int i = 0; i < dropletAmount; i++) {
+  for (int i = 0; i < dropletMax; i++) {
    //Init JSONobject 
    JSONObject dropletData = new JSONObject();
    dropletData.setFloat("x", 0);
@@ -46,8 +46,6 @@ void setup() {
    dropletData.setFloat("r", 0);
    dropletArray.setJSONObject(i,dropletData);
   }
-
-  
 }
 
 void draw() {
@@ -55,8 +53,8 @@ void draw() {
   moonlander.update();
   translate(width/2,height/2); //Start from somewhere
   float moon_counter = (float) moonlander.getValue("Floating_Cities");
-  //println(moon_counter);
-  //println(moon_counter_prev);
+  println(moon_counter, moon_counter_prev);
+  
   if (moon_counter != moon_counter_prev) {
      // Time for new droplet!
      
@@ -86,12 +84,16 @@ void draw() {
       float y = dropletArray.getJSONObject(i).getFloat("y");
       float r = dropletArray.getJSONObject(i).getFloat("r");
       
-      println(current_time_stamp, prev_time_stamp);
+      //println(current_time_stamp, prev_time_stamp);
       if (current_time_stamp > prev_time_stamp) {
         r = r + droplet_size_increment;
         dropletArray.getJSONObject(i).setFloat("r", r);
       }
-      ellipse(x,y, r, r); 
+      float intensity = 70 - droplet_size_increment * r;
+      if (intensity > 0){
+        fill(230,50,intensity);
+        ellipse(x,y, r, r);
+      }
   }
   prev_time_stamp = current_time_stamp;
   noiseCounterIndex++;

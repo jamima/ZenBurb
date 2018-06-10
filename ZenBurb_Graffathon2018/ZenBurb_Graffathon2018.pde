@@ -9,6 +9,19 @@ int bpm = 120;
 float bps = bpm/60;
 int slices = 8;
 
+int noiseCounterIndexX = 45;
+int noiseCounterIndexY = 65;
+
+//Paw variables
+float paw_to_paw_dist = CANVAS_WIDTH*0.1;
+float paw_appearance_interval = 2; //Time difference between the two paws.
+float paw_remain_time = 2; //How long a paw is visible
+float paw_fade_time = 2; //How long a paw takes to fade
+float paw_loop_timer = 0; //This gives the running time from the start of paw loop (from cT - pLLT), reset to 0 when loop has been completed, due to pLLT = cT at that time
+float paw_latest_loop_timestamp = 0; // pLLT = cT when loop has been completed
+float paw_intensity = 70;
+float pawFadePercentage = 0;
+
 float prev_rocket_val = 0; //Compare to this previous value 
 float rocket_val_diff = 0.05;
 int noiseCounterIndex = 4;
@@ -71,11 +84,11 @@ void draw() {
      // Time for new droplet!
      
      //Get location for new droplet
-     float noiseValX = noise(noiseCounterIndex*60);
-     float noiseValY = noise(noiseCounterIndex*100);
-     
-     float new_droplet_x = map(noiseValX, 0,1,-width/2, width/2); 
-     float new_droplet_y = map(noiseValY, 0,1,-height/2, height/2); 
+     float noiseValX = noise(noiseCounterIndexX);
+     float noiseValY = noise(noiseCounterIndexY);
+     println(noiseValX, noiseValY);
+     float new_droplet_x = map(noiseValX, 0.1,0.9,-width/2, width/2); 
+     float new_droplet_y = map(noiseValY, 0.1,0.9,-height/2, height/2); 
 
       //Overwrite JSONObject in the JSONArray
       dropletArray.getJSONObject(arrayIndex).setFloat("x", new_droplet_x);
@@ -104,12 +117,36 @@ void draw() {
       }
       drawCircle(x,y,r);
   }
+  
+  // Drawing paws
+  // Current loop time
+  paw_loop_timer = current_time_stamp - paw_latest_loop_timestamp;
+  if (paw_loop_timer >= 0.0 && paw_loop_timer < paw_remain_time + paw_fade_time) {
+    pawFadePercentage = 0;
+    if (paw_loop_timer >= paw_remain_time) {
+     //Fade first paw.
+     pawFadePercentage = (paw_loop_timer - paw_remain_time)/paw_fade_time;
+    }
+    
+     //Draw first paw
+     drawPaw(-paw_to_paw_dist/2,0, width*0.05, pawFadePercentage);
+  }
+  
+  if (paw_loop_timer >= paw_appearance_interval && paw_loop_timer < paw_remain_time + paw_fade_time + paw_appearance_interval) {
+    pawFadePercentage = 0;
+    if (paw_loop_timer >= paw_remain_time + paw_appearance_interval) {
+    //Fade second paw, first paw not visible yet.
+      pawFadePercentage = (paw_loop_timer - paw_remain_time-paw_appearance_interval)/paw_fade_time;
+    }
+    //Draw the second paw 
+    drawPaw(paw_to_paw_dist/2,0,width*0.05, pawFadePercentage);
+  }
+  if (paw_loop_timer >= paw_appearance_interval + paw_remain_time + paw_fade_time){
+     paw_latest_loop_timestamp = current_time_stamp;
+  }
+  
   prev_time_stamp = current_time_stamp;
-  noiseCounterIndex++;
-}
-
-void drawSphere(float x, float y, float r) {
-   
+  noiseCounterIndexX++; noiseCounterIndexY++;
 }
 
 void drawCircle(float x, float y, float r) {
@@ -121,14 +158,20 @@ void drawCircle(float x, float y, float r) {
   }
 }
 
-void circle(float x, float y, float size) {
-    //Outer ellipse
-  ellipseMode(CENTER);
-  fill(255);
-  ellipse(x, y, size, size);
-  //Inner ellipse
-  ellipseMode(CENTER); 
-  fill(0);
-   ellipse(x, y, size/1.2, size/1.2);
-
+void drawPaw(float centerX, float centerY, float pawSize, float pawFadePercentage) {
+  //One big circle (using centerX and centerY), and 3 small circles
+  if (pawFadePercentage < 1){ 
+    fill(230, droplet_color_saturation, paw_intensity*(1-pawFadePercentage));
+    
+    //Big circle
+    float pawFlatness = height*0.02;
+    float toeDistance = width*0.01;
+    float toeSize = width*0.015;
+    float toeOffset = width*0.005;
+    ellipse(centerX,centerY,pawSize,pawSize-pawFlatness);
+    ellipse(centerX,centerY-(pawSize-pawFlatness)/2-toeDistance,toeSize, toeSize);
+    ellipse(centerX-pawSize/2+toeOffset,centerY-(pawSize-pawFlatness)/2-toeDistance+toeOffset,toeSize, toeSize);
+    ellipse(centerX+pawSize/2-toeOffset,centerY-(pawSize-pawFlatness)/2-toeDistance+toeOffset,toeSize, toeSize);
+    
+  }
 }

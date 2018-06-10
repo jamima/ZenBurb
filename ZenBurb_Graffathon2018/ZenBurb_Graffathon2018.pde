@@ -13,6 +13,7 @@ int noiseCounterIndexX = 45;
 int noiseCounterIndexY = 65;
 
 float static_start_time = 8;
+float static_end_time = 40;
 
 //Paw variables
 float paw_to_paw_dist = CANVAS_WIDTH*0.1;
@@ -125,6 +126,12 @@ void draw() {
   if (current_time_stamp < static_start_time){
      drawPaw(-paw_to_paw_dist/2, 0, width*0.05, 0);
      drawPaw(paw_to_paw_dist/2,0,width*0.05, 0);
+  }
+  else if (current_time_stamp >= (end_time_s - static_end_time)){
+    paw_loop_timer = current_time_stamp - paw_latest_loop_timestamp;
+    pawFadePercentage = paw_loop_timer / static_end_time;
+    drawPaw(-paw_to_paw_dist/2, 0, width*0.05, pawFadePercentage);
+    drawPaw(paw_to_paw_dist/2,0,width*0.05, pawFadePercentage);
   }
   else{
     paw_loop_timer = current_time_stamp - paw_latest_loop_timestamp;

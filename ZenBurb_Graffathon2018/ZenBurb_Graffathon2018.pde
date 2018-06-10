@@ -43,8 +43,8 @@ void setup() {
   for (int i = 0; i < dropletMax; i++) {
    //Init JSONobject 
    JSONObject dropletData = new JSONObject();
-   dropletData.setFloat("x", 0);
-   dropletData.setFloat("y", 0);
+   dropletData.setFloat("x", -9000); //-9000 for not drawing droplets in origo at the beginning.
+   dropletData.setFloat("y", -9000); //-9000 for not drawing droplets in origo at the beginning.
    dropletData.setFloat("r", 0);
    dropletData.setString("mode","full"); //full and empty
    dropletArray.setJSONObject(i,dropletData);
@@ -94,7 +94,7 @@ void draw() {
       float y = dropletArray.getJSONObject(i).getFloat("y");
       float r = dropletArray.getJSONObject(i).getFloat("r");
       
-      println(current_time_stamp, prev_time_stamp);
+      //println(current_time_stamp, prev_time_stamp);
       if (current_time_stamp > prev_time_stamp) {
         r = r + droplet_size_increment;
         dropletArray.getJSONObject(i).setFloat("r", r);
@@ -103,6 +103,7 @@ void draw() {
       if (intensity > 0){
         //fill(230,50,intensity); //The original
         fill(194,50,intensity);
+        translate(0,10);
         if (dropletArray.getJSONObject(i).getString("mode") == "empty") {
           circle(x,y, r);
         } else {
@@ -111,6 +112,7 @@ void draw() {
       }
       
   }
+  
   prev_time_stamp = current_time_stamp;
   noiseCounterIndex++;
 }

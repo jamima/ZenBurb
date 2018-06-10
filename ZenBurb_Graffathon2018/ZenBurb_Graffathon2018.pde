@@ -90,7 +90,7 @@ void draw() {
      //Get location for new droplet
      float noiseValX = noise(noiseCounterIndexX);
      float noiseValY = noise(noiseCounterIndexY);
-     println(noiseValX, noiseValY);
+
      float new_droplet_x = map(noiseValX, 0.1,0.9,-width/2, width/2); 
      float new_droplet_y = map(noiseValY, 0.1,0.9,-height/2, height/2); 
 
@@ -208,7 +208,7 @@ void drawPaw(float centerX, float centerY, float pawSize, float pawFadePercentag
 }
 
 void assignDropletMode(float current_time_stamp) {
-  if ((current_time_stamp > 5 && random(5) <= 2) || current_time_stamp > 10) {
+  if ((current_time_stamp > 2*static_start_time && random(5) <= 2)) {
       dropletArray.getJSONObject(arrayIndex).setString("mode","empty");
   } else {
       dropletArray.getJSONObject(arrayIndex).setString("mode","full");

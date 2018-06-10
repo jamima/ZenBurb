@@ -50,11 +50,12 @@ void settings() {
 
 void setup() {
   frameRate(60);
-  moonlander = Moonlander.initWithSoundtrack(this, "Floating_Cities.mp3", bpm, slices);
+  moonlander = Moonlander.initWithSoundtrack(this, "data/Floating_Cities.mp3", bpm, slices);
   moonlander.start();
   colorMode(HSB, 360, 100, 100);
   background(240, 100, 0);
   noiseSeed(0);
+  noCursor();
   noStroke();
   //noCursor(); //Todo enable for final version
   

@@ -9,23 +9,41 @@ int bpm = 120;
 float bps = bpm/60;
 int slices = 8;
 
-float moon_counter_prev = 0; //Compare to this previous value 
-float moon_counter_diff = 0.05;
+int noiseCounterIndexX = 45;
+int noiseCounterIndexY = 65;
+
+float static_start_time = 8;
+
+//Paw variables
+float paw_to_paw_dist = CANVAS_WIDTH*0.1;
+float paw_appearance_interval = 2; //Time difference between the two paws.
+float paw_fade_time = 2; //How long a paw takes to fade
+float paw_remain_time = paw_appearance_interval + paw_fade_time; //How long a paw is visible
+float paw_loop_timer = 0; //This gives the running time from the start of paw loop (from cT - pLLT), reset to 0 when loop has been completed, due to pLLT = cT at that time
+float paw_latest_loop_timestamp = static_start_time; // pLLT = cT when loop has been completed
+float paw_intensity = 70;
+float pawFadePercentage = 0;
+
+float prev_rocket_val = 0; //Compare to this previous value 
+float rocket_val_diff = 0.05;
 int noiseCounterIndex = 4;
 int dropletMax = 80; //How many droplets are drawn at max
 
 JSONArray dropletArray;
 int arrayIndex = 0; //Keep track of which droplet will be reset in the dropletArray
 int new_droplet_r = 2;
-float droplet_size_increment = 1;
+float droplet_size_increment = 1.5;
 
 float end_time_s = 60;
 float prev_time_stamp = 0;
 
+float droplet_color_saturation = 50;
+float intensity_threshold = 1;
+
 Moonlander moonlander;
 
 void settings() {
-  size(CANVAS_WIDTH, CANVAS_HEIGHT, P3D);
+  size(CANVAS_WIDTH, CANVAS_HEIGHT, P2D);
 
 }
 
@@ -36,6 +54,7 @@ void setup() {
   colorMode(HSB, 360, 100, 100);
   background(240, 100, 0);
   noiseSeed(0);
+  noStroke();
   //noCursor(); //Todo enable for final version
   
   //Init Array and dropletData objects
@@ -43,10 +62,9 @@ void setup() {
   for (int i = 0; i < dropletMax; i++) {
    //Init JSONobject 
    JSONObject dropletData = new JSONObject();
-   dropletData.setFloat("x", -9000); //-9000 for not drawing droplets in origo at the beginning.
-   dropletData.setFloat("y", -9000); //-9000 for not drawing droplets in origo at the beginning.
+   dropletData.setFloat("x", 0);
+   dropletData.setFloat("y", 0);
    dropletData.setFloat("r", 0);
-   dropletData.setString("mode","full"); //full and empty
    dropletArray.setJSONObject(i,dropletData);
   }
 }
@@ -62,30 +80,30 @@ void draw() {
     exit();
   }
   
-  float moon_counter = (float) moonlander.getValue("Floating_Cities");
+  float curr_rocket_val = (float) moonlander.getValue("Floating_Cities");
   
-  if (abs(moon_counter - moon_counter_prev) > moon_counter_diff) {
+  if (abs(curr_rocket_val - prev_rocket_val) > rocket_val_diff) {
      // Time for new droplet!
      
      //Get location for new droplet
-     float noiseValX = noise(noiseCounterIndex*50);
-     float noiseValY = noise(noiseCounterIndex*100);
-     
-     float new_droplet_x = map(noiseValX, 0,1,-width/2, width/2); 
-     float new_droplet_y = map(noiseValY, 0,1,-height/2, height/2); 
+     float noiseValX = noise(noiseCounterIndexX);
+     float noiseValY = noise(noiseCounterIndexY);
+     println(noiseValX, noiseValY);
+     float new_droplet_x = map(noiseValX, 0.1,0.9,-width/2, width/2); 
+     float new_droplet_y = map(noiseValY, 0.1,0.9,-height/2, height/2); 
 
-      //Overwrite JSONObject
+      //Overwrite JSONObject in the JSONArray
       dropletArray.getJSONObject(arrayIndex).setFloat("x", new_droplet_x);
       dropletArray.getJSONObject(arrayIndex).setFloat("y", new_droplet_y);
       dropletArray.getJSONObject(arrayIndex).setFloat("r", new_droplet_r);
-      assignDropletMode(current_time_stamp);
-      
       arrayIndex++;
       if (arrayIndex >= dropletArray.size())
       {
          arrayIndex = 0;
       }
-      moon_counter_prev = moon_counter;
+      
+      //reset counter
+      prev_rocket_val = curr_rocket_val;
   }
   
   //Draw droplets in array (remember to increase r)
@@ -94,45 +112,70 @@ void draw() {
       float y = dropletArray.getJSONObject(i).getFloat("y");
       float r = dropletArray.getJSONObject(i).getFloat("r");
       
-      //println(current_time_stamp, prev_time_stamp);
+      // println(current_time_stamp, prev_time_stamp);
       if (current_time_stamp > prev_time_stamp) {
         r = r + droplet_size_increment;
         dropletArray.getJSONObject(i).setFloat("r", r);
       }
-      float intensity = 70 - droplet_size_increment * r;
-      if (intensity > 0){
-        //fill(230,50,intensity); //The original
-        fill(194,50,intensity);
-        translate(0,10);
-        if (dropletArray.getJSONObject(i).getString("mode") == "empty") {
-          circle(x,y, r);
-        } else {
-          ellipse(x,y, r, r);
-        }
-      }
-      
+      drawRainDrop(x,y,r);
+  }
+  
+  // Drawing paws
+  // Current loop time
+  if (current_time_stamp < static_start_time){
+     drawPaw(-paw_to_paw_dist/2, 0, width*0.05, 0);
+     drawPaw(paw_to_paw_dist/2,0,width*0.05, 0);
+  }
+  else{
+    paw_loop_timer = current_time_stamp - paw_latest_loop_timestamp;
+    if (paw_loop_timer >= 0.0 && paw_loop_timer < paw_fade_time) {
+       pawFadePercentage = paw_loop_timer / paw_fade_time;
+       drawPaw(-paw_to_paw_dist/2, 0, width*0.05, pawFadePercentage);
+    }
+    else if (paw_loop_timer >= paw_fade_time + paw_appearance_interval){
+      drawPaw(-paw_to_paw_dist/2, 0, width*0.05, 0);
+    }
+    pawFadePercentage = 0;
+    if (paw_loop_timer >= 0.0 && paw_loop_timer < paw_fade_time + paw_appearance_interval) {
+      drawPaw(paw_to_paw_dist/2, 0, width*0.05, 0);
+    }
+    else if (paw_loop_timer >= paw_fade_time + paw_appearance_interval){
+      pawFadePercentage = (paw_loop_timer - paw_fade_time - paw_appearance_interval)/paw_fade_time;
+      drawPaw(paw_to_paw_dist/2,0,width*0.05, pawFadePercentage);
+    }
+    
+    if (paw_loop_timer >= paw_appearance_interval + paw_remain_time + paw_fade_time){
+       paw_latest_loop_timestamp = current_time_stamp;
+    }
   }
   
   prev_time_stamp = current_time_stamp;
-  noiseCounterIndex++;
+  noiseCounterIndexX++; noiseCounterIndexY++;
 }
 
-void assignDropletMode(float current_time_stamp) {
-  if ((current_time_stamp > 5 && random(5) <= 2) || current_time_stamp > 10) {
-      dropletArray.getJSONObject(arrayIndex).setString("mode","empty");
-  } else {
-      dropletArray.getJSONObject(arrayIndex).setString("mode","full");
+void drawRainDrop(float x, float y, float r) {
+  // choose intensity for the droplet
+  float intensity = 70 - droplet_size_increment * r;
+  if (intensity > intensity_threshold){ // To remove black droplets
+    fill(230, droplet_color_saturation, intensity);
+    ellipse(x,y, r, r);
   }
 }
 
-void circle(float x, float y, float size) {
-  //Outer ellipse
-  ellipseMode(CENTER);
-  //fill(255);
-  ellipse(x, y, size, size);
-  //Inner ellipse
-  ellipseMode(CENTER); 
-  fill(0);
-   ellipse(x, y, size/1.1, size/1.1);
-
+void drawPaw(float centerX, float centerY, float pawSize, float pawFadePercentage) {
+  //One big circle (using centerX and centerY), and 3 small circles
+  if (pawFadePercentage < 1){ 
+    fill(230, droplet_color_saturation, paw_intensity*(1-pawFadePercentage));
+    
+    //Big circle
+    float pawFlatness = height*0.02;
+    float toeDistance = width*0.01;
+    float toeSize = width*0.015;
+    float toeOffset = width*0.005;
+    ellipse(centerX,centerY,pawSize,pawSize-pawFlatness);
+    ellipse(centerX,centerY-(pawSize-pawFlatness)/2-toeDistance,toeSize, toeSize);
+    ellipse(centerX-pawSize/2+toeOffset,centerY-(pawSize-pawFlatness)/2-toeDistance+toeOffset,toeSize, toeSize);
+    ellipse(centerX+pawSize/2-toeOffset,centerY-(pawSize-pawFlatness)/2-toeDistance+toeOffset,toeSize, toeSize);
+    
+  }
 }

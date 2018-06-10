@@ -66,6 +66,7 @@ void setup() {
    dropletData.setFloat("x", 0);
    dropletData.setFloat("y", 0);
    dropletData.setFloat("r", 0);
+   dropletData.setString("mode","full"); //full and empty
    dropletArray.setJSONObject(i,dropletData);
   }
 }
@@ -97,6 +98,7 @@ void draw() {
       dropletArray.getJSONObject(arrayIndex).setFloat("x", new_droplet_x);
       dropletArray.getJSONObject(arrayIndex).setFloat("y", new_droplet_y);
       dropletArray.getJSONObject(arrayIndex).setFloat("r", new_droplet_r);
+      assignDropletMode(current_time_stamp);
       arrayIndex++;
       if (arrayIndex >= dropletArray.size())
       {
@@ -112,13 +114,15 @@ void draw() {
       float x = dropletArray.getJSONObject(i).getFloat("x");
       float y = dropletArray.getJSONObject(i).getFloat("y");
       float r = dropletArray.getJSONObject(i).getFloat("r");
+      String mode = dropletArray.getJSONObject(i).getString("mode");
       
       // println(current_time_stamp, prev_time_stamp);
       if (current_time_stamp > prev_time_stamp) {
         r = r + droplet_size_increment;
         dropletArray.getJSONObject(i).setFloat("r", r);
       }
-      drawRainDrop(x,y,r);
+
+      drawRainDrop(x,y,r,mode);
   }
   
   // Drawing paws
@@ -169,6 +173,22 @@ void drawRainDrop(float x, float y, float r) {
   }
 }
 
+void drawRainDrop(float x, float y, float r, String mode) {
+  // choose intensity for the droplet
+  float intensity = 70 - droplet_size_increment * r;
+  if (intensity > intensity_threshold){ // To remove black droplets
+    fill(230, droplet_color_saturation, intensity);
+    if (mode == "empty")
+    {
+      circle(x,y, r);
+    }
+    else {
+      ellipse(x,y, r, r);
+    }
+    
+  }
+}
+
 void drawPaw(float centerX, float centerY, float pawSize, float pawFadePercentage) {
   //One big circle (using centerX and centerY), and 3 small circles
   if (pawFadePercentage < 1){ 
@@ -185,4 +205,24 @@ void drawPaw(float centerX, float centerY, float pawSize, float pawFadePercentag
     ellipse(centerX+pawSize/2-toeOffset,centerY-(pawSize-pawFlatness)/2-toeDistance+toeOffset,toeSize, toeSize);
     
   }
+}
+
+void assignDropletMode(float current_time_stamp) {
+  if ((current_time_stamp > 5 && random(5) <= 2) || current_time_stamp > 10) {
+      dropletArray.getJSONObject(arrayIndex).setString("mode","empty");
+  } else {
+      dropletArray.getJSONObject(arrayIndex).setString("mode","full");
+  }
+}
+
+void circle(float x, float y, float size) {
+  //Outer ellipse
+  ellipseMode(CENTER);
+  //fill(255);
+  ellipse(x, y, size, size);
+  //Inner ellipse
+  ellipseMode(CENTER); 
+  fill(0);
+   ellipse(x, y, size/1.1, size/1.1);
+
 }

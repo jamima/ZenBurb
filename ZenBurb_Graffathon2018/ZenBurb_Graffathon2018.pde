@@ -12,13 +12,15 @@ int slices = 8;
 int noiseCounterIndexX = 45;
 int noiseCounterIndexY = 65;
 
+float static_start_time = 8;
+
 //Paw variables
 float paw_to_paw_dist = CANVAS_WIDTH*0.1;
 float paw_appearance_interval = 2; //Time difference between the two paws.
-float paw_remain_time = 2; //How long a paw is visible
 float paw_fade_time = 2; //How long a paw takes to fade
+float paw_remain_time = paw_appearance_interval + paw_fade_time; //How long a paw is visible
 float paw_loop_timer = 0; //This gives the running time from the start of paw loop (from cT - pLLT), reset to 0 when loop has been completed, due to pLLT = cT at that time
-float paw_latest_loop_timestamp = 0; // pLLT = cT when loop has been completed
+float paw_latest_loop_timestamp = static_start_time; // pLLT = cT when loop has been completed
 float paw_intensity = 70;
 float pawFadePercentage = 0;
 
@@ -115,41 +117,43 @@ void draw() {
         r = r + droplet_size_increment;
         dropletArray.getJSONObject(i).setFloat("r", r);
       }
-      drawCircle(x,y,r);
+      drawRainDrop(x,y,r);
   }
   
   // Drawing paws
   // Current loop time
-  paw_loop_timer = current_time_stamp - paw_latest_loop_timestamp;
-  if (paw_loop_timer >= 0.0 && paw_loop_timer < paw_remain_time + paw_fade_time) {
+  if (current_time_stamp < static_start_time){
+     drawPaw(-paw_to_paw_dist/2, 0, width*0.05, 0);
+     drawPaw(paw_to_paw_dist/2,0,width*0.05, 0);
+  }
+  else{
+    paw_loop_timer = current_time_stamp - paw_latest_loop_timestamp;
+    if (paw_loop_timer >= 0.0 && paw_loop_timer < paw_fade_time) {
+       pawFadePercentage = paw_loop_timer / paw_fade_time;
+       drawPaw(-paw_to_paw_dist/2, 0, width*0.05, pawFadePercentage);
+    }
+    else if (paw_loop_timer >= paw_fade_time + paw_appearance_interval){
+      drawPaw(-paw_to_paw_dist/2, 0, width*0.05, 0);
+    }
     pawFadePercentage = 0;
-    if (paw_loop_timer >= paw_remain_time) {
-     //Fade first paw.
-     pawFadePercentage = (paw_loop_timer - paw_remain_time)/paw_fade_time;
+    if (paw_loop_timer >= 0.0 && paw_loop_timer < paw_fade_time + paw_appearance_interval) {
+      drawPaw(paw_to_paw_dist/2, 0, width*0.05, 0);
+    }
+    else if (paw_loop_timer >= paw_fade_time + paw_appearance_interval){
+      pawFadePercentage = (paw_loop_timer - paw_fade_time - paw_appearance_interval)/paw_fade_time;
+      drawPaw(paw_to_paw_dist/2,0,width*0.05, pawFadePercentage);
     }
     
-     //Draw first paw
-     drawPaw(-paw_to_paw_dist/2,0, width*0.05, pawFadePercentage);
-  }
-  
-  if (paw_loop_timer >= paw_appearance_interval && paw_loop_timer < paw_remain_time + paw_fade_time + paw_appearance_interval) {
-    pawFadePercentage = 0;
-    if (paw_loop_timer >= paw_remain_time + paw_appearance_interval) {
-    //Fade second paw, first paw not visible yet.
-      pawFadePercentage = (paw_loop_timer - paw_remain_time-paw_appearance_interval)/paw_fade_time;
+    if (paw_loop_timer >= paw_appearance_interval + paw_remain_time + paw_fade_time){
+       paw_latest_loop_timestamp = current_time_stamp;
     }
-    //Draw the second paw 
-    drawPaw(paw_to_paw_dist/2,0,width*0.05, pawFadePercentage);
-  }
-  if (paw_loop_timer >= paw_appearance_interval + paw_remain_time + paw_fade_time){
-     paw_latest_loop_timestamp = current_time_stamp;
   }
   
   prev_time_stamp = current_time_stamp;
   noiseCounterIndexX++; noiseCounterIndexY++;
 }
 
-void drawCircle(float x, float y, float r) {
+void drawRainDrop(float x, float y, float r) {
   // choose intensity for the droplet
   float intensity = 70 - droplet_size_increment * r;
   if (intensity > intensity_threshold){ // To remove black droplets

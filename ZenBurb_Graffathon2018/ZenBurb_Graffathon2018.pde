@@ -13,7 +13,7 @@ int noiseCounterIndexX = 45;
 int noiseCounterIndexY = 65;
 
 float static_start_time = 8;
-float static_end_time = 40;
+float static_end_time = 8;
 
 //Paw variables
 float paw_to_paw_dist = CANVAS_WIDTH*0.1;
